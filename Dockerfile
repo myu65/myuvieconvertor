@@ -54,6 +54,7 @@ RUN python3.10 -m venv /opt/venvs/cosyvoice \
     && /opt/venvs/cosyvoice/bin/pip install --no-cache-dir --no-deps /opt/videoai-src
 
 # MuseTalk 1.5 runtime follows its tested Torch/CUDA combination and omits training/UI-only packages.
+# chumpy's legacy setup imports pip, so it must be installed without PEP 517 build isolation.
 RUN python3.10 -m venv /opt/venvs/musetalk \
     && /opt/venvs/musetalk/bin/pip install --no-cache-dir --upgrade pip wheel \
     && /opt/venvs/musetalk/bin/pip install --no-cache-dir \
@@ -62,6 +63,7 @@ RUN python3.10 -m venv /opt/venvs/musetalk \
        /opt/upstreams/MuseTalk/requirements.txt > /tmp/musetalk-requirements.txt \
     && /opt/venvs/musetalk/bin/pip install --no-cache-dir -r /tmp/musetalk-requirements.txt \
     && /opt/venvs/musetalk/bin/pip install --no-cache-dir openmim \
+    && /opt/venvs/musetalk/bin/pip install --no-cache-dir --no-build-isolation chumpy==0.70 \
     && /opt/venvs/musetalk/bin/mim install mmengine==0.10.7 mmcv==2.0.1 mmdet==3.1.0 mmpose==1.1.0 \
     && /opt/venvs/musetalk/bin/pip install --no-cache-dir --no-deps /opt/videoai-src
 
