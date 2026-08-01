@@ -1,20 +1,22 @@
 spec:
   containers:
-    - name: model-bootstrap
+    - name: model-validate
       image: /MYUVIE_DB/APP/IMAGES/model-bootstrap:__IMAGE_TAG__
-      args: [bootstrap]
+      args: [validate]
       env:
         MODEL_LOCK: /config/config/models.lock.yaml
         MODEL_OUTPUT: /mnt/models/releases
-        MODEL_SCRATCH: /scratch/downloads
         MODEL_RELEASE_ID: __RELEASE_ID__
+        HF_HUB_OFFLINE: '1'
+        HF_DATASETS_OFFLINE: '1'
+        TRANSFORMERS_OFFLINE: '1'
+        PIP_NO_INDEX: '1'
       resources:
-        requests: {cpu: 4, memory: 16Gi}
-        limits: {memory: 16Gi}
+        requests: {cpu: 2, memory: 8Gi}
+        limits: {memory: 8Gi}
       volumeMounts:
         - {name: models, mountPath: /mnt/models}
         - {name: config, mountPath: /config}
-        - {name: scratch, mountPath: /scratch}
   volumes:
     - name: models
       source: stage
@@ -22,4 +24,3 @@ spec:
     - name: config
       source: stage
       stageConfig: {name: '@MYUVIE_DB.APP.SPECS'}
-    - {name: scratch, source: local}

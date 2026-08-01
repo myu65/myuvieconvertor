@@ -11,10 +11,35 @@ models:
     conditions: Review model-card voice, content, and jurisdictional restrictions before release.
     source: https://huggingface.co/FunAudioLLM/CosyVoice2-0.5B
   musetalk-1.5:
-    license: MIT
-    commercial_use: allowed_for_code_and_musetalk_weights
-    conditions: Upstream permits commercial use of its code and trained model; separately comply with Whisper, VAE, DWPose, S3FD, and other third-party licenses. Internet test data is non-commercial research only and is not included here.
+    license: MIT code; model metadata says CreativeML-OpenRAIL-M
+    commercial_use: legal_review_required_due_to_conflicting_upstream_notices
+    conditions: The GitHub README says the trained model may be used commercially, while the Hugging Face model metadata declares CreativeML-OpenRAIL-M. Resolve this conflict before production use. Internet test data is non-commercial research only and is not included.
     source: https://github.com/TMElyralab/MuseTalk
+  musetalk-sd-vae:
+    license: MIT
+    commercial_use: allowed
+    conditions: Preserve the MIT license and notices.
+    source: https://huggingface.co/stabilityai/sd-vae-ft-mse
+  musetalk-whisper-tiny:
+    license: Apache-2.0 model card; MIT source code
+    commercial_use: allowed_subject_to_notices
+    conditions: Preserve the applicable model and source notices.
+    source: https://huggingface.co/openai/whisper-tiny
+  musetalk-dwpose:
+    license: Apache-2.0
+    commercial_use: allowed_subject_to_notices
+    conditions: Preserve the Apache-2.0 license and notices.
+    source: https://huggingface.co/yzd-v/DWPose
+  musetalk-syncnet:
+    license: OpenRAIL++
+    commercial_use: allowed_subject_to_use_restrictions_and_legal_review
+    conditions: Review and comply with the OpenRAIL++ use restrictions before production use.
+    source: https://huggingface.co/ByteDance/LatentSync
+  musetalk-face-parser:
+    license: Weight-specific license not stated
+    commercial_use: legal_review_required
+    conditions: The official MuseTalk script identifies the Google Drive weight and PyTorch ResNet source, but the face-parser checkpoint has no separately stated weight license. Do not approve production use without legal confirmation.
+    source: https://github.com/TMElyralab/MuseTalk/blob/main/download_weights.sh
   qwen3-4b-instruct-2507:
     license: Apache-2.0
     commercial_use: allowed

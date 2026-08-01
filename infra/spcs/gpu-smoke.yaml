@@ -2,9 +2,13 @@ spec:
   containers:
     - name: videoai
       image: /MYUVIE_DB/APP/IMAGES/myuvieconvertor:__IMAGE_TAG__
-      args: [doctor]
+      args: [run-job, --request, /mnt/media/__REQUEST_PATH__, --output-root, /mnt/media/results]
       env:
         VIDEOAI_MODEL_ROOT: /mnt/models
+        VIDEOAI_MODEL_CACHE: /scratch/models
+        VIDEOAI_MATERIALIZE_MODELS: '1'
+        VIDEOAI_WORK_ROOT: /scratch/work
+        VIDEOAI_STAGE_MOUNTS: /mnt/media:/mnt/models
         HF_HUB_OFFLINE: '1'
         HF_DATASETS_OFFLINE: '1'
         TRANSFORMERS_OFFLINE: '1'
@@ -19,7 +23,7 @@ spec:
   volumes:
     - name: models
       source: stage
-      stageConfig: {name: '@MYUVIE_DB.APP.MODELS'}
+      stageConfig: {name: '@MYUVIE_DB.APP.MODELS/releases/__RELEASE_ID__'}
     - name: media
       source: stage
       stageConfig: {name: '@MYUVIE_DB.APP.MEDIA'}

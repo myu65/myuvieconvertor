@@ -10,12 +10,13 @@
 | [CosyVoice source](https://github.com/FunAudioLLM/CosyVoice) | `3bf48f125a8c25d3f9c386cdb3abf2b614391817` | Apache-2.0 | TTS runtime | Allowed with Apache notice |
 | [CosyVoice2-0.5B weights](https://huggingface.co/FunAudioLLM/CosyVoice2-0.5B) | `7532de4ab5a24a119fbc93fdc27449a329649a4a` | Apache-2.0 in model card | Zero-shot voice cloning | Allowed with notice; consent still required |
 | [MuseTalk source](https://github.com/TMElyralab/MuseTalk) | `0a89dec45a0192b824e3cf4daf96c239440c5ed8` | MIT | Lip-sync | Allowed with notice |
-| MuseTalk 1.5 weights | `2d8793f1b062656796acaa236c30ae49ddee0344` | Upstream explicitly permits any purpose, including commercial | Lip-sync UNet | Allowed; third-party models remain separately licensed |
-| MuseTalk SD VAE | `stabilityai/sd-vae-ft-mse` snapshot bundled by upstream download recipe | MIT stated by MuseTalk LICENSE | VAE | Allowed with notice |
-| MuseTalk Whisper tiny | `openai/whisper-tiny` | MIT | Audio feature encoder | Allowed with notice |
-| DWPose | upstream model snapshot | Apache-2.0 stated by MuseTalk LICENSE | Landmark processing | Allowed with notice |
+| MuseTalk 1.5 weights | `2d8793f1b062656796acaa236c30ae49ddee0344` | GitHub README permits commercial use; Hugging Face metadata says CreativeML-OpenRAIL-M | Lip-sync UNet | **Resolve conflicting upstream notices before production** |
+| MuseTalk SD VAE | `31f26fdeee1355a5c34592e401dd41e45d25a493` | MIT model card | VAE | Allowed with notice |
+| MuseTalk Whisper tiny | `169d4a4341b33bc18d8881c4b69c2e104e1cc0af` | Apache-2.0 model card; source code MIT | Audio feature encoder | Allowed with applicable notices |
+| DWPose | `1a7144101628d69ee7a3768d1ee3a094070dc388` | Apache-2.0 model card | Landmark processing | Allowed with notice |
+| LatentSync SyncNet | `405eda8eab9f65c1a6e0c292a5dee5a08089e2ae` | OpenRAIL++ model card | Lip-sync synchronization | **Legal review of use restrictions required** |
 | face-parsing.PyTorch code | upstream | MIT | Face mask | Allowed with notice |
-| face parser `79999_iter.pth` | Google Drive ID used by MuseTalk official script | Weight-specific license not separately stated | Face parsing | **Legal confirmation recommended** |
+| face parser `79999_iter.pth` | Official MuseTalk Google Drive ID; SHA256 `468e13ca…` | Weight-specific license not separately stated | Face parsing | **Legal confirmation required before production** |
 | ResNet-18 weights | PyTorch official URL | BSD-style PyTorch terms | Face parsing backbone | Keep attribution |
 | FFmpeg Ubuntu package | Distribution build has GPL features enabled | GPL/LGPL components | External process for media conversion | Preserve package notices/source-offer obligations for redistributed image |
 | NVIDIA CUDA base image | `nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04` | NVIDIA container/CUDA terms | GPU runtime | Review enterprise redistribution terms |
@@ -34,5 +35,5 @@
 1. Docker imageのSBOMを作り、実際に解決されたPython/OS package licenseを確認する。
 2. `model-lock.json` と本台帳をリリース成果物に含める。
 3. Apache/MIT/BSD noticesを同梱する。
-4. face parser weightの出所・重みライセンスを知財部門で確認する。
+4. MuseTalkのGitHub/Hugging Face間の条件差、OpenRAIL++ SyncNet、face parser weightを知財部門で確認する。
 5. 話者のvoice/likeness consent、原動画、翻訳、公開地域の権利をjob単位で記録する。

@@ -7,6 +7,14 @@ on:
         description: Immutable inference image commit SHA
         required: true
         type: string
+      model_release:
+        description: Verified immutable release ID under MODELS/releases
+        required: true
+        type: string
+      request_path:
+        description: Safe relative JSON request path under the MEDIA stage
+        required: true
+        type: string
       confirm_gpu_cost:
         description: Type RESUME-MYUVIE-GPU-A10
         required: true
@@ -39,7 +47,19 @@ jobs:
       - name: Render offline smoke specification
         env:
           IMAGE_TAG: ${{ inputs.image_tag }}
-        run: sed "s/__IMAGE_TAG__/${IMAGE_TAG}/g" infra/spcs/gpu-smoke.yaml > /tmp/gpu-smoke.yaml
+          MODEL_RELEASE: ${{ inputs.model_release }}
+          REQUEST_PATH: ${{ inputs.request_path }}
+        run: |
+          [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$MODEL_RELEASE" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]
+          PYTHONPATH=src python -m videoai.cli spcs render-job-spec \
+            --image "/MYUVIE_DB/APP/IMAGES/myuvieconvertor:${IMAGE_TAG}" \
+            --model-stage "@MYUVIE_DB.APP.MODELS/releases/${MODEL_RELEASE}" \
+            --job-stage @MYUVIE_DB.APP.MEDIA \
+            --request-path "$REQUEST_PATH" \
+            --output /tmp/gpu-smoke.yaml
+          snow stage list-files "@MYUVIE_DB.APP.MODELS/releases/${MODEL_RELEASE}/manifest.json" -c myuvie
+          snow stage list-files "@MYUVIE_DB.APP.MEDIA/${REQUEST_PATH}" -c myuvie
       - name: Prove AUTO_RESUME remains disabled
         run: |
           snow sql -c myuvie -q "SHOW COMPUTE POOLS LIKE 'MYUVIE_GPU_A10'"
@@ -47,7 +67,10 @@ jobs:
       - name: Explicitly resume GPU and run offline smoke job
         run: |
           snow sql -c myuvie -q 'ALTER COMPUTE POOL MYUVIE_GPU_A10 RESUME'
-          snow spcs service execute-job --connection myuvie --compute-pool MYUVIE_GPU_A10 --spec-path /tmp/gpu-smoke.yaml
+          snow spcs service execute-job "MYUVIE_GPU_SMOKE_${GITHUB_RUN_ID}" \
+            --connection myuvie --compute-pool MYUVIE_GPU_A10 --spec-path /tmp/gpu-smoke.yaml
+          snow spcs service logs "MYUVIE_GPU_SMOKE_${GITHUB_RUN_ID}" \
+            --container-name videoai --instance-id 0 --connection myuvie
       - name: Always suspend GPU and verify state
         if: always()
         run: |

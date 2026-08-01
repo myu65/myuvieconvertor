@@ -10,26 +10,100 @@ models:
     allow_patterns: null
     required_sha256:
       model.safetensors: a8e94b85976e5864ba3e9525c7e6c83b2a1eca42d4b797a0c7c24d778e40fd95
+    required_files: [config.json, model.safetensors, preprocessor_config.json]
+    required_globs: ['*.safetensors']
   - name: cosyvoice2-0.5b
     repo_id: FunAudioLLM/CosyVoice2-0.5B
     revision: 7532de4ab5a24a119fbc93fdc27449a329649a4a
     allow_patterns: null
     required_sha256: {}
+    required_files:
+      - cosyvoice2.yaml
+      - llm.pt
+      - flow.pt
+      - hift.pt
+      - speech_tokenizer_v2.onnx
+      - campplus.onnx
+      - flow.decoder.estimator.fp32.onnx
+    required_globs: []
   - name: musetalk-1.5
+    runtime_name: musetalk
     repo_id: TMElyralab/MuseTalk
     revision: 2d8793f1b062656796acaa236c30ae49ddee0344
     allow_patterns:
       - musetalkV15/*
-      - syncnet/*
-      - dwpose/*
-      - sd-vae/*
-      - whisper/*
-      - face-parse-bisent/*
     required_sha256:
       musetalkV15/unet.pth: 7ebf6c98c181e20838e4c0054e96e944ac60d5d692cc01db42839fe11b787007
+    required_files:
+      - musetalkV15/musetalk.json
+      - musetalkV15/unet.pth
+    required_globs: []
+  - name: musetalk-sd-vae
+    runtime_name: musetalk
+    destination_prefix: sd-vae
+    repo_id: stabilityai/sd-vae-ft-mse
+    revision: 31f26fdeee1355a5c34592e401dd41e45d25a493
+    allow_patterns: [config.json, diffusion_pytorch_model.bin]
+    required_sha256:
+      diffusion_pytorch_model.bin: 1b4889b6b1d4ce7ae320a02dedaeff1780ad77d415ea0d744b476155c6377ddc
+    required_files: [config.json, diffusion_pytorch_model.bin]
+    required_globs: []
+  - name: musetalk-whisper-tiny
+    runtime_name: musetalk
+    destination_prefix: whisper
+    repo_id: openai/whisper-tiny
+    revision: 169d4a4341b33bc18d8881c4b69c2e104e1cc0af
+    allow_patterns: [config.json, pytorch_model.bin, preprocessor_config.json]
+    required_sha256:
+      pytorch_model.bin: 9607f98a2b22d9e229ae43c52ecea79dcede9e0c5cfae67e8da6eda86d8aac1d
+    required_files: [config.json, pytorch_model.bin, preprocessor_config.json]
+    required_globs: []
+  - name: musetalk-dwpose
+    runtime_name: musetalk
+    destination_prefix: dwpose
+    repo_id: yzd-v/DWPose
+    revision: 1a7144101628d69ee7a3768d1ee3a094070dc388
+    allow_patterns: [dw-ll_ucoco_384.pth]
+    required_sha256:
+      dw-ll_ucoco_384.pth: 0d9408b13cd863c4e95a149dd31232f88f2a12aa6cf8964ed74d7d97748c7a07
+    required_files: [dw-ll_ucoco_384.pth]
+    required_globs: []
+  - name: musetalk-syncnet
+    runtime_name: musetalk
+    destination_prefix: syncnet
+    repo_id: ByteDance/LatentSync
+    revision: 405eda8eab9f65c1a6e0c292a5dee5a08089e2ae
+    allow_patterns: [latentsync_syncnet.pt]
+    required_sha256:
+      latentsync_syncnet.pt: 38fa63bad3ed2332f647c40a5dc616cb0e233db8579f698f62af4c41965c4da5
+    required_files: [latentsync_syncnet.pt]
+    required_globs: []
+  - name: musetalk-face-parser
+    runtime_name: musetalk
+    destination_prefix: face-parse-bisent
+    repo_id: null
+    revision: direct-sha256
+    external_files:
+      - path: 79999_iter.pth
+        url: https://drive.usercontent.google.com/download?id=154JgKpzCPW82qINcVieuPH3fZ2e0P812&export=download&confirm=t
+      - path: resnet18-5c106cde.pth
+        url: https://download.pytorch.org/models/resnet18-5c106cde.pth
+    required_sha256:
+      79999_iter.pth: 468e13ca13a9b43cc0881a9f99083a430e9c0a38abd935431d1c28ee94b26567
+      resnet18-5c106cde.pth: 5c106cde386e87d4033832f2996f5493238eda96ccf559d1d62760c4de0613f8
+    required_files: [79999_iter.pth, resnet18-5c106cde.pth]
+    required_globs: []
   - name: qwen3-4b-instruct-2507
     repo_id: Qwen/Qwen3-4B-Instruct-2507
     revision: 1b4199c4f36b0cef378bfb12390c18780c18af4c
     allow_patterns: null
     required_sha256:
       model-00001-of-00003.safetensors: 75311d91bb08cf0b882913da464a1e722a31fb44db35208663487efb7a3d8ed6
+    required_files:
+      - config.json
+      - tokenizer.json
+      - model-00001-of-00003.safetensors
+      - model-00002-of-00003.safetensors
+      - model-00003-of-00003.safetensors
+      - model.safetensors.index.json
+    required_globs: ['*.safetensors']

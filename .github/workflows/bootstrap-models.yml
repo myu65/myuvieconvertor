@@ -12,6 +12,10 @@ on:
         description: Existing immutable commit SHA tag (defaults to this commit)
         required: false
         type: string
+      release_id:
+        description: Immutable release ID (defaults to commit and workflow run ID)
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -59,14 +63,56 @@ jobs:
         if: inputs.operation == 'run-cpu-job'
         env:
           IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
+          REQUESTED_RELEASE_ID: ${{ inputs.release_id }}
         run: |
-          sed "s/__IMAGE_TAG__/${IMAGE_TAG}/g" infra/spcs/model-bootstrap.yaml > /tmp/model-bootstrap.yaml
+          RELEASE_ID="${REQUESTED_RELEASE_ID:-models-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}}"
+          [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$RELEASE_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]
+          echo "IMAGE_TAG=$IMAGE_TAG" >> "$GITHUB_ENV"
+          echo "RELEASE_ID=$RELEASE_ID" >> "$GITHUB_ENV"
+          sed -e "s/__IMAGE_TAG__/${IMAGE_TAG}/g" -e "s/__RELEASE_ID__/${RELEASE_ID}/g" \
+            infra/spcs/model-bootstrap.yaml > /tmp/model-bootstrap.yaml
+          sed -e "s/__IMAGE_TAG__/${IMAGE_TAG}/g" -e "s/__RELEASE_ID__/${RELEASE_ID}/g" \
+            infra/spcs/model-validate.yaml > /tmp/model-validate.yaml
           snow stage copy config/models.lock.yaml @MYUVIE_DB.APP.SPECS/config/ --overwrite -c myuvie
       - name: Resume CPU pool and execute download-only job with EAI
         if: inputs.operation == 'run-cpu-job'
         run: |
+          snow sql -c myuvie -q "SHOW COMPUTE POOLS LIKE 'MYUVIE_CPU_MODELS'"
+          snow sql -c myuvie -q 'ALTER COMPUTE POOL MYUVIE_CPU_MODELS SET AUTO_RESUME = FALSE'
           snow sql -c myuvie -q 'ALTER COMPUTE POOL MYUVIE_CPU_MODELS RESUME'
-          snow spcs service execute-job --connection myuvie --compute-pool MYUVIE_CPU_MODELS --spec-path /tmp/model-bootstrap.yaml --eai-name MYUVIE_MODEL_DOWNLOAD_EAI
+          snow spcs service execute-job "MYUVIE_MODEL_DOWNLOAD_${GITHUB_RUN_ID}" \
+            --connection myuvie --compute-pool MYUVIE_CPU_MODELS \
+            --spec-path /tmp/model-bootstrap.yaml --eai-name MYUVIE_MODEL_DOWNLOAD_EAI
+      - name: Validate complete release without external access
+        if: inputs.operation == 'run-cpu-job'
+        run: |
+          snow spcs service execute-job "MYUVIE_MODEL_VALIDATE_${GITHUB_RUN_ID}" \
+            --connection myuvie --compute-pool MYUVIE_CPU_MODELS \
+            --spec-path /tmp/model-validate.yaml
+      - name: Download and summarize verified manifest
+        if: inputs.operation == 'run-cpu-job'
+        run: |
+          mkdir -p /tmp/model-manifest
+          snow stage copy "@MYUVIE_DB.APP.MODELS/releases/${RELEASE_ID}/manifest.json" \
+            /tmp/model-manifest/ -c myuvie
+          python - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          manifest = json.loads(next(Path('/tmp/model-manifest').rglob('manifest.json')).read_text())
+          print(f"## Verified model release `{manifest['release_id']}`")
+          print("| Model | Runtime directory | Revision | Files | Bytes |")
+          print("|---|---|---|---:|---:|")
+          for model in manifest['models']:
+              size = sum(file['bytes'] for file in model['files'])
+              print(f"| {model['name']} | {model['runtime_name']} | `{model['revision']}` | {len(model['files'])} | {size} |")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: inputs.operation == 'run-cpu-job'
+        with:
+          name: model-manifest-${{ env.RELEASE_ID }}
+          path: /tmp/model-manifest/**/manifest.json
+          if-no-files-found: error
       - name: Always suspend CPU pool and verify state
         if: always() && inputs.operation == 'run-cpu-job'
         run: |
