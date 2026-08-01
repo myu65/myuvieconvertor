@@ -1,0 +1,22 @@
+schema_version: 1
+models:
+  whisper-large-v3:
+    license: Apache-2.0
+    commercial_use: allowed
+    conditions: Preserve the Apache-2.0 license and notices.
+    source: https://huggingface.co/openai/whisper-large-v3
+  cosyvoice2-0.5b:
+    license: Apache-2.0
+    commercial_use: allowed_subject_to_upstream_terms
+    conditions: Review model-card voice, content, and jurisdictional restrictions before release.
+    source: https://huggingface.co/FunAudioLLM/CosyVoice2-0.5B
+  musetalk-1.5:
+    license: MIT
+    commercial_use: allowed_for_code_and_musetalk_weights
+    conditions: Upstream permits commercial use of its code and trained model; separately comply with Whisper, VAE, DWPose, S3FD, and other third-party licenses. Internet test data is non-commercial research only and is not included here.
+    source: https://github.com/TMElyralab/MuseTalk
+  qwen3-4b-instruct-2507:
+    license: Apache-2.0
+    commercial_use: allowed
+    conditions: Preserve the Apache-2.0 license and notices.
+    source: https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507

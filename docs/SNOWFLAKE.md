@@ -1,143 +1,70 @@
-# Snowpark Container Services deployment
+# Snowflake Cloud deployment
 
-SPCSアカウントがない環境でも仕様を静的検証できるよう、現行GAのservice specificationだけを使っています。実機では必ず短い10秒素材から確認してください。
+This repository deploys from GitHub-hosted runners; WSL and a developer workstation are not
+part of the production path. The `snowflake-dev` GitHub Environment is restricted to `main`, so
+all Snowflake workflows are manual and must be invoked from `main` after review and merge.
 
-## 1. Region and instance family
+## Fixed resources
 
-最初にアカウントで利用可能なfamilyを確認します。
+| Resource | Value |
+| --- | --- |
+| Account | `HTXCFQM-QG85847` |
+| WIF user / role | `MYUVIE_GITHUB` / `MYUVIE_DEV` |
+| Database / schema | `MYUVIE_DB.APP` |
+| Image repository | `MYUVIE_DB.APP.IMAGES` |
+| Stages | `MODELS`, `MEDIA`, `SPECS` |
+| GPU pool | `MYUVIE_GPU_A10` (`GPU_NV_S`, one A10G 24 GB) |
+| CPU model pool | `MYUVIE_CPU_MODELS` |
 
-```sql
-SHOW COMPUTE POOL INSTANCE FAMILIES;
-```
+Both pools use `AUTO_RESUME=FALSE`. Only their dedicated manual workflows issue `RESUME`, and an
+`if: always()` cleanup step issues `SUSPEND` and displays the final state.
 
-単一24 GB GPUを最低線とします。AWSは通常 `GPU_NV_S` (A10G 24 GB)ですが、AWS大阪regionでは公式表上利用不可です。Azureなら `GPU_NV_SM` (A10 24 GB)、GCPなら `GPU_GCP_NV_L4_1_24G`を候補にし、実際のSHOW結果を優先してください。
+## Promotion sequence
 
-## 2. Objects and least privilege
+1. Run CI on the pull request: Ruff, pytest, YAML/SQL policy checks, and both linux/amd64 builds.
+2. Merge the reviewed Draft PR to `main`.
+3. Dispatch `Snowflake OIDC and deploy` with `oidc-check`.
+4. Dispatch it with `push-image`.
+5. Dispatch `Bootstrap models on CPU` first with `push-bootstrap-image`, then `run-cpu-job`.
+6. Inspect the complete SHA256 manifest under `@MODELS/releases/<timestamp>/manifest.json`.
+7. Stop for a human cost/safety decision before dispatching `GPU smoke test`.
 
-以下は管理者が環境名を調整して実行する雛形です。
+The GPU workflow additionally requires the literal confirmation `RESUME-MYUVIE-GPU-A10`.
 
-```sql
-CREATE ROLE IF NOT EXISTS VIDEOAI_OWNER;
-GRANT CREATE DATABASE ON ACCOUNT TO ROLE VIDEOAI_OWNER;
-GRANT CREATE COMPUTE POOL ON ACCOUNT TO ROLE VIDEOAI_OWNER;
+## Authentication
 
-USE ROLE VIDEOAI_OWNER;
-CREATE DATABASE IF NOT EXISTS VIDEOAI;
-CREATE SCHEMA IF NOT EXISTS VIDEOAI.APP;
-CREATE IMAGE REPOSITORY IF NOT EXISTS VIDEOAI.APP.IMAGES;
-CREATE STAGE IF NOT EXISTS VIDEOAI.APP.MODELS ENCRYPTION = (TYPE = 'SNOWFLAKE_SSE');
-CREATE STAGE IF NOT EXISTS VIDEOAI.APP.JOBS ENCRYPTION = (TYPE = 'SNOWFLAKE_SSE');
-CREATE STAGE IF NOT EXISTS VIDEOAI.APP.SPECS ENCRYPTION = (TYPE = 'SNOWFLAKE_SSE');
+`config.toml` contains identifiers only. `snowflakedb/snowflake-actions@v3` requests a short-lived
+GitHub OIDC token and exports it as `SNOWFLAKE_CONNECTIONS_MYUVIE_TOKEN`. No password, private key,
+or long-lived Snowflake credential is stored in GitHub Secrets.
 
-CREATE COMPUTE POOL IF NOT EXISTS VIDEOAI_GPU_POOL
-  MIN_NODES = 1
-  MAX_NODES = 1
-  INSTANCE_FAMILY = GPU_NV_S
-  AUTO_RESUME = TRUE
-  INITIALLY_SUSPENDED = TRUE
-  AUTO_SUSPEND_SECS = 300;
-```
+`infra/snowflake/02_wif.sql` records the hardened Environment subject. Administrator-only creation
+of the network rule/EAI is isolated in `01_external_access.sql`; it must not be added to an
+inference job.
 
-実務ではdatabase作成とcompute pool作成を管理者、service/job実行を専用owner roleへ分離してください。job owner roleにはmodel stageのREAD、job stageのREAD/WRITE、image repositoryのREAD、compute poolのUSAGEが必要です。model stageにWRITEを与えないことでmountもread-onlyになります。
+## Model supply chain
 
-## 3. Build and push linux/amd64 image
+`config/models.lock.yaml` pins every Hugging Face repository to a 40-character commit. Known
+high-value artifacts have committed SHA256 values. The CPU-only bootstrap container downloads each
+snapshot to local scratch, rejects a revision or locked hash mismatch, calculates SHA256 for every
+file, then copies the verified release and manifest to the `MODELS` stage. Only that job receives
+`MYUVIE_MODEL_DOWNLOAD_EAI`.
 
-```bash
-docker build --platform linux/amd64 -t myuvieconvertor:sha-abcdef0 .
-snow spcs image-registry login -c YOUR_CONNECTION
+The inference image and GPU spec force `HF_HUB_OFFLINE`, `HF_DATASETS_OFFLINE`,
+`TRANSFORMERS_OFFLINE`, and `PIP_NO_INDEX`. The GPU job has no External Access Integration.
 
-# SHOW IMAGE REPOSITORIESでrepository_urlを取得して置換
-docker tag myuvieconvertor:sha-abcdef0 \
-  ORG-ACCOUNT.registry.snowflakecomputing.com/videoai/app/images/videoai:sha-abcdef0
-docker push ORG-ACCOUNT.registry.snowflakecomputing.com/videoai/app/images/videoai:sha-abcdef0
-```
+## GPU memory policy
 
-mutableな `latest` ではなくcommit SHA tagを使います。SPCSは `linux/amd64` imageのみ対応します。
+Whisper large-v3, CosyVoice2, and MuseTalk run in separate child processes. The orchestrator waits
+for each child to exit before starting the next, so model memory is released between phases and the
+three models never remain resident together on the 24 GB GPU. A real smoke test should start with a
+short, non-sensitive clip in `@MEDIA`.
 
-## 4. Upload locked models
+## Bootstrap SQL
 
-```bash
-videoai models fetch --destination ./models
-videoai models verify --root ./models
-snow stage copy ./models @VIDEOAI.APP.MODELS/models \
-  --recursive --no-auto-compress --overwrite -c YOUR_CONNECTION
-```
+Run `infra/snowflake/00_objects.sql` with a role that owns the existing objects. Run
+`01_external_access.sql` and `02_wif.sql` only with the administrator roles named in those files.
+Do not put administrator execution into GitHub Actions.
 
-stageはmodel serving cacheではありません。job specは `/mnt/models` からlocal volume `/scratch/models`へ一度コピーしてからモデルをロードします。これにより大量のrandom readをstage mountへ直接発行しません。
-
-## 5. Submit a job
-
-ローカルにjob folderを作ります。
-
-```text
-job-001/
-  request.json
-  lecture.mp4
-  speaker.wav
-```
-
-`request.json`:
-
-```json
-{
-  "mode": "dub",
-  "avatar": "lecture.mp4",
-  "output": "lecture-en.mp4",
-  "target_language": "en",
-  "voice_reference": "speaker.wav",
-  "voice_transcript": "参照音声で実際に話している文を正確に記載する",
-  "translator": "qwen",
-  "duration_policy": "preserve"
-}
-```
-
-```bash
-snow stage copy ./job-001 @VIDEOAI.APP.JOBS/requests/job-001 \
-  --recursive --no-auto-compress --overwrite -c YOUR_CONNECTION
-
-videoai spcs render-job-spec \
-  --image /VIDEOAI/APP/IMAGES/videoai:sha-abcdef0 \
-  --model-stage @VIDEOAI.APP.MODELS/models \
-  --job-stage @VIDEOAI.APP.JOBS \
-  --request-path requests/job-001/request.json \
-  --output job-001.yaml
-
-snow stage copy ./job-001.yaml @VIDEOAI.APP.SPECS/jobs/ \
-  --no-auto-compress --overwrite -c YOUR_CONNECTION
-```
-
-```sql
-EXECUTE JOB SERVICE
-  IN COMPUTE POOL VIDEOAI_GPU_POOL
-  NAME = VIDEOAI_JOB_001
-  FROM @VIDEOAI.APP.SPECS/jobs
-  SPEC = 'job-001.yaml';
-```
-
-job serviceは既定で同期実行です。非同期化する場合は `ASYNC = TRUE` を公式構文の順序どおりに指定してください。結果は `@VIDEOAI.APP.JOBS/results/job-001/` に動画とJSONとして作られます。
-
-## 6. Diagnose
-
-```sql
-SHOW SERVICE CONTAINERS IN SERVICE VIDEOAI_JOB_001;
-SELECT SYSTEM$GET_SERVICE_LOGS('VIDEOAI_JOB_001', '0', 'videoai', 200);
-SELECT * FROM TABLE(VIDEOAI_JOB_001!SPCS_GET_LOGS(
-  START_TIME => DATEADD('hour', -1, CURRENT_TIMESTAMP())
-));
-```
-
-確認点:
-
-- `Container failed to start`: image path/READ privilege/linux-amd64を確認。
-- `Unschedulable`: GPU requestとinstance family、pool capacityを確認。
-- model missing: `snow stage list-files` と `model-lock.json`、recursive uploadを確認。
-- Stage書込み失敗: job owner roleのWRITE privilegeを確認。
-- 起動が遅い: stage sidecarとstorage metricsを確認。model materializationは毎job必要なので、小さいテスト素材でもcold startは短くならない。
-- OOM: 1 GPUを明示要求しているか確認し、batch sizeを8から4へ下げる。モデルはprocessごとに終了するため、同時常駐はしない。
-
-## 7. Cost controls
-
-- job serviceを使い、常駐endpointは作らない。
-- compute poolはSnowflake仕様上 `MIN_NODES` が1以上必須です。`MIN_NODES=1`, `MAX_NODES=1`, `INITIALLY_SUSPENDED=TRUE`, `AUTO_SUSPEND_SECS`を設定する。
-- job serviceは自動cleanupされるが、compute pool状態と請求を別途監視する。
-- 同じモデルを大量jobで繰返す場合だけ、block volume snapshotや常駐serviceの採算を再評価する。
+The official references used for these files are the Snowflake CLI GitHub Action, workload identity
+federation, image repository, compute pool, service specification, and `EXECUTE JOB SERVICE`
+documentation.

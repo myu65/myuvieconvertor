@@ -22,14 +22,18 @@ class ModelSpec:
 
 
 MODEL_SPECS = (
-    ModelSpec("whisper-large-v3", "openai/whisper-large-v3", None),
+    ModelSpec(
+        "whisper-large-v3",
+        "openai/whisper-large-v3",
+        "1940b900b8d4d8fdf72a31be85a0d223b9488e00",
+    ),
     ModelSpec(
         "cosyvoice2-0.5b", "FunAudioLLM/CosyVoice2-0.5B", "7532de4ab5a24a119fbc93fdc27449a329649a4a"
     ),
     ModelSpec(
         "musetalk",
         "TMElyralab/MuseTalk",
-        None,
+        "2d8793f1b062656796acaa236c30ae49ddee0344",
         (
             "musetalkV15/*",
             "syncnet/*",
@@ -38,7 +42,11 @@ MODEL_SPECS = (
             "whisper/*",
         ),
     ),
-    ModelSpec("qwen3-4b-instruct-2507", "Qwen/Qwen3-4B-Instruct-2507", None),
+    ModelSpec(
+        "qwen3-4b-instruct-2507",
+        "Qwen/Qwen3-4B-Instruct-2507",
+        "1b4199c4f36b0cef378bfb12390c18780c18af4c",
+    ),
 )
 
 

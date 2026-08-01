@@ -1,5 +1,9 @@
 # myuvieconvertor
 
+> Cloud deployment: see [docs/SNOWFLAKE.md](docs/SNOWFLAKE.md). GitHub Actions uses secretless
+> Snowflake WIF/OIDC, immutable linux/amd64 images, an offline inference job, and explicit
+> suspend/resume cost controls.
+
 Linux/NVIDIA GPUで、話者動画の翻訳吹替と静止画のトーキングヘッド生成を行うCLIです。UIはありません。初期の商用PoC向け構成を、ライセンスと再現性を優先して次に固定しています。
 
 - ASR: Whisper large-v3 (`transformers`)

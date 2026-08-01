@@ -80,10 +80,11 @@ ENV PATH=/opt/venvs/videoai/bin:$PATH \
     VIDEOAI_COSYVOICE_PYTHON=/opt/venvs/cosyvoice/bin/python \
     VIDEOAI_MUSETALK_PYTHON=/opt/venvs/musetalk/bin/python \
     VIDEOAI_QWEN_PYTHON=/opt/venvs/qwen/bin/python \
+    PIP_NO_INDEX=1 \
     HF_HUB_OFFLINE=1 \
+    HF_DATASETS_OFFLINE=1 \
     TRANSFORMERS_OFFLINE=1
 
 WORKDIR /work
 ENTRYPOINT ["videoai"]
 CMD ["doctor"]
-

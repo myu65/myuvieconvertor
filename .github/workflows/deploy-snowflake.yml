@@ -1,0 +1,59 @@
+name: Snowflake OIDC and deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Safe deployment phase
+        required: true
+        type: choice
+        options: [oidc-check, push-image, upload-specs]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: snowflake-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment: snowflake-dev
+    env:
+      REGISTRY: htxcfqm-qg85847.registry.snowflakecomputing.com
+      IMAGE: htxcfqm-qg85847.registry.snowflakecomputing.com/myuvie_db/app/images/myuvieconvertor
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure Snowflake CLI with GitHub OIDC
+        uses: snowflakedb/snowflake-actions@v3
+        with:
+          cli-version: "3.16.0"
+          default-config-file-path: config.toml
+          use-oidc: true
+          oidc-token-name: SNOWFLAKE_CONNECTIONS_MYUVIE_TOKEN
+      - name: Verify OIDC identity and protected objects
+        run: snow sql -c myuvie -f infra/snowflake/verify.sql
+      - uses: docker/setup-buildx-action@v3
+        if: inputs.operation == 'push-image'
+      - name: Log in to Snowflake image registry
+        if: inputs.operation == 'push-image'
+        run: snow spcs image-registry login -c myuvie
+      - name: Build and push immutable linux/amd64 inference image
+        if: inputs.operation == 'push-image'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha,scope=inference
+          cache-to: type=gha,mode=max,scope=inference
+      - name: Upload versioned SPCS specifications
+        if: inputs.operation == 'upload-specs'
+        run: |
+          snow stage copy infra/spcs @MYUVIE_DB.APP.SPECS/${GITHUB_SHA}/ --recursive --overwrite -c myuvie

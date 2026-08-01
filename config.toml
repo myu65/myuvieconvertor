@@ -1,0 +1,10 @@
+default_connection_name = "myuvie"
+
+[connections.myuvie]
+account = "HTXCFQM-QG85847"
+user = "MYUVIE_GITHUB"
+role = "MYUVIE_DEV"
+database = "MYUVIE_DB"
+schema = "APP"
+authenticator = "WORKLOAD_IDENTITY"
+workload_identity_provider = "OIDC"

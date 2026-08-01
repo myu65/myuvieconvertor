@@ -1,0 +1,26 @@
+spec:
+  containers:
+    - name: videoai
+      image: /MYUVIE_DB/APP/IMAGES/myuvieconvertor:__IMAGE_TAG__
+      args: [doctor]
+      env:
+        VIDEOAI_MODEL_ROOT: /mnt/models
+        HF_HUB_OFFLINE: '1'
+        HF_DATASETS_OFFLINE: '1'
+        TRANSFORMERS_OFFLINE: '1'
+        PIP_NO_INDEX: '1'
+      resources:
+        requests: {cpu: 4, memory: 20Gi, nvidia.com/gpu: 1}
+        limits: {memory: 20Gi, nvidia.com/gpu: 1}
+      volumeMounts:
+        - {name: models, mountPath: /mnt/models}
+        - {name: media, mountPath: /mnt/media}
+        - {name: scratch, mountPath: /scratch}
+  volumes:
+    - name: models
+      source: stage
+      stageConfig: {name: '@MYUVIE_DB.APP.MODELS'}
+    - name: media
+      source: stage
+      stageConfig: {name: '@MYUVIE_DB.APP.MEDIA'}
+    - {name: scratch, source: local}
