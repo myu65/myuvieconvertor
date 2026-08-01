@@ -1,0 +1,11 @@
+{
+  "mode": "dub",
+  "avatar": "lecture.mp4",
+  "output": "lecture-en.mp4",
+  "target_language": "en",
+  "voice_reference": "speaker.wav",
+  "voice_transcript": "参照音声で実際に話している文を正確に記載する",
+  "translator": "qwen",
+  "duration_policy": "preserve"
+}
+

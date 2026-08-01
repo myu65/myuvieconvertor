@@ -1,0 +1,11 @@
+{
+  "mode": "dub",
+  "avatar": "avatar.mp4",
+  "output": "mock-output.mp4",
+  "target_language": "en",
+  "voice_reference": "speaker.wav",
+  "voice_transcript": "This is a mock reference.",
+  "translator": "qwen",
+  "profile": "mock",
+  "duration_policy": "preserve"
+}

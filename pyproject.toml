@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "myuvieconvertor"
+version = "0.1.0"
+description = "CLI-first, auditable OSS video dubbing pipeline for Linux and Snowpark Container Services"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+authors = [{name = "myu65"}]
+dependencies = [
+  "gdown>=5.1,<6",
+  "huggingface-hub>=0.30,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3,<10",
+  "pytest-cov>=6,<8",
+  "ruff>=0.11,<1",
+  "pyyaml>=6.0,<7",
+]
+local-translation = [
+  "accelerate>=1.2,<2",
+  "transformers>=4.51,<6",
+]
+
+[project.scripts]
+videoai = "videoai.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "SIM", "RUF"]
+ignore = ["S603", "S607"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+
+[tool.pytest.ini_options]
+addopts = "-q --strict-markers --disable-warnings"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+omit = ["src/videoai/runtimes/*"]

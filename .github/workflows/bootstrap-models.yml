@@ -1,0 +1,74 @@
+name: Bootstrap models on CPU
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Build first, then run in a separate invocation
+        required: true
+        type: choice
+        options: [push-bootstrap-image, run-cpu-job]
+      image_tag:
+        description: Existing immutable commit SHA tag (defaults to this commit)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: model-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-24.04
+    environment: snowflake-dev
+    env:
+      REGISTRY: htxcfqm-qg85847.registry.snowflakecomputing.com
+      IMAGE: htxcfqm-qg85847.registry.snowflakecomputing.com/myuvie_db/app/images/model-bootstrap
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure Snowflake CLI with GitHub OIDC
+        uses: snowflakedb/snowflake-actions@v3
+        with:
+          cli-version: "3.16.0"
+          default-config-file-path: config.toml
+          use-oidc: true
+          oidc-token-name: SNOWFLAKE_CONNECTIONS_MYUVIE_TOKEN
+      - uses: docker/setup-buildx-action@v3
+        if: inputs.operation == 'push-bootstrap-image'
+      - name: Log in to registry
+        if: inputs.operation == 'push-bootstrap-image'
+        run: snow spcs image-registry login -c myuvie
+      - name: Build and push bootstrap image
+        if: inputs.operation == 'push-bootstrap-image'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: containers/model-bootstrap/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.IMAGE }}:${{ inputs.image_tag || github.sha }}
+          cache-from: type=gha,scope=model-bootstrap
+          cache-to: type=gha,mode=max,scope=model-bootstrap
+      - name: Stage locked configuration and render immutable spec
+        if: inputs.operation == 'run-cpu-job'
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
+        run: |
+          sed "s/__IMAGE_TAG__/${IMAGE_TAG}/g" infra/spcs/model-bootstrap.yaml > /tmp/model-bootstrap.yaml
+          snow stage copy config/models.lock.yaml @MYUVIE_DB.APP.SPECS/config/ --overwrite -c myuvie
+      - name: Resume CPU pool and execute download-only job with EAI
+        if: inputs.operation == 'run-cpu-job'
+        run: |
+          snow sql -c myuvie -q 'ALTER COMPUTE POOL MYUVIE_CPU_MODELS RESUME'
+          snow spcs service execute-job --connection myuvie --compute-pool MYUVIE_CPU_MODELS --spec-path /tmp/model-bootstrap.yaml --eai-name MYUVIE_MODEL_DOWNLOAD_EAI
+      - name: Always suspend CPU pool and verify state
+        if: always() && inputs.operation == 'run-cpu-job'
+        run: |
+          snow sql -c myuvie -q 'ALTER COMPUTE POOL IF EXISTS MYUVIE_CPU_MODELS SUSPEND'
+          snow sql -c myuvie -q "SHOW COMPUTE POOLS LIKE 'MYUVIE_CPU_MODELS'"

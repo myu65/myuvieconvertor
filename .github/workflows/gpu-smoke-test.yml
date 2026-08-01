@@ -1,0 +1,55 @@
+name: GPU smoke test (manual and metered)
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Immutable inference image commit SHA
+        required: true
+        type: string
+      confirm_gpu_cost:
+        description: Type RESUME-MYUVIE-GPU-A10
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: gpu-smoke-test
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    if: inputs.confirm_gpu_cost == 'RESUME-MYUVIE-GPU-A10'
+    runs-on: ubuntu-24.04
+    environment: snowflake-dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure Snowflake CLI with GitHub OIDC
+        uses: snowflakedb/snowflake-actions@v3
+        with:
+          cli-version: "3.16.0"
+          default-config-file-path: config.toml
+          use-oidc: true
+          oidc-token-name: SNOWFLAKE_CONNECTIONS_MYUVIE_TOKEN
+      - name: Render offline smoke specification
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: sed "s/__IMAGE_TAG__/${IMAGE_TAG}/g" infra/spcs/gpu-smoke.yaml > /tmp/gpu-smoke.yaml
+      - name: Prove AUTO_RESUME remains disabled
+        run: |
+          snow sql -c myuvie -q "SHOW COMPUTE POOLS LIKE 'MYUVIE_GPU_A10'"
+          snow sql -c myuvie -q 'ALTER COMPUTE POOL MYUVIE_GPU_A10 SET AUTO_RESUME = FALSE'
+      - name: Explicitly resume GPU and run offline smoke job
+        run: |
+          snow sql -c myuvie -q 'ALTER COMPUTE POOL MYUVIE_GPU_A10 RESUME'
+          snow spcs service execute-job --connection myuvie --compute-pool MYUVIE_GPU_A10 --spec-path /tmp/gpu-smoke.yaml
+      - name: Always suspend GPU and verify state
+        if: always()
+        run: |
+          snow sql -c myuvie -q 'ALTER COMPUTE POOL IF EXISTS MYUVIE_GPU_A10 SUSPEND'
+          snow sql -c myuvie -q "SHOW COMPUTE POOLS LIKE 'MYUVIE_GPU_A10'"
