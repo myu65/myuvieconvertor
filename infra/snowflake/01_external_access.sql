@@ -6,7 +6,9 @@ CREATE OR REPLACE NETWORK RULE MYUVIE_DB.APP.MODEL_DOWNLOAD_RULE
     'huggingface.co',
     '*.huggingface.co',
     '*.hf.co',
-    'cdn-lfs-us-1.hf.co'
+    'cdn-lfs-us-1.hf.co',
+    'drive.usercontent.google.com',
+    'download.pytorch.org'
   );
 CREATE EXTERNAL ACCESS INTEGRATION IF NOT EXISTS MYUVIE_MODEL_DOWNLOAD_EAI
   ALLOWED_NETWORK_RULES = (MYUVIE_DB.APP.MODEL_DOWNLOAD_RULE)
