@@ -91,9 +91,9 @@ SPCSは常駐serviceではなく、処理終了時にコンテナが終了する
 
 ```bash
 videoai spcs render-job-spec \
-  --image /VIDEOAI/APP/IMAGES/videoai:sha-abcdef0 \
-  --model-stage @VIDEOAI.APP.MODELS/models \
-  --job-stage @VIDEOAI.APP.JOBS \
+  --image /MYUVIE_DB/APP/IMAGES/myuvieconvertor:COMMIT_SHA \
+  --model-stage @MYUVIE_DB.APP.MODELS/releases/RELEASE_ID \
+  --job-stage @MYUVIE_DB.APP.MEDIA \
   --request-path requests/job-001/request.json \
   --output job-001.yaml
 ```

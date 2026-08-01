@@ -4,13 +4,13 @@
 
 | Component | Pinned artifact | Declared license | Use in this project | Status |
 |---|---|---|---|---|
-| [OpenAI Whisper large-v3](https://huggingface.co/openai/whisper-large-v3) | resolved revision in lock | MIT | ASR weights through Transformers | Allowed with notice |
+| [OpenAI Whisper large-v3](https://huggingface.co/openai/whisper-large-v3) | `1940b900b8d4d8fdf72a31be85a0d223b9488e00` | Apache-2.0 | ASR weights through Transformers | Allowed with Apache notice |
 | Hugging Face Transformers | Docker-pinned version | Apache-2.0 | ASR/Qwen runtime | Allowed with notice |
-| [Qwen3-4B-Instruct-2507](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507) | resolved revision in lock | Apache-2.0 | Local translation | Allowed with notice |
+| [Qwen3-4B-Instruct-2507](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507) | `1b4199c4f36b0cef378bfb12390c18780c18af4c` | Apache-2.0 | Local translation | Allowed with notice |
 | [CosyVoice source](https://github.com/FunAudioLLM/CosyVoice) | `3bf48f125a8c25d3f9c386cdb3abf2b614391817` | Apache-2.0 | TTS runtime | Allowed with Apache notice |
 | [CosyVoice2-0.5B weights](https://huggingface.co/FunAudioLLM/CosyVoice2-0.5B) | `7532de4ab5a24a119fbc93fdc27449a329649a4a` | Apache-2.0 in model card | Zero-shot voice cloning | Allowed with notice; consent still required |
 | [MuseTalk source](https://github.com/TMElyralab/MuseTalk) | `0a89dec45a0192b824e3cf4daf96c239440c5ed8` | MIT | Lip-sync | Allowed with notice |
-| MuseTalk 1.5 weights | resolved revision in lock | MIT stated by project LICENSE | Lip-sync UNet | Allowed with notice |
+| MuseTalk 1.5 weights | `2d8793f1b062656796acaa236c30ae49ddee0344` | Upstream explicitly permits any purpose, including commercial | Lip-sync UNet | Allowed; third-party models remain separately licensed |
 | MuseTalk SD VAE | `stabilityai/sd-vae-ft-mse` snapshot bundled by upstream download recipe | MIT stated by MuseTalk LICENSE | VAE | Allowed with notice |
 | MuseTalk Whisper tiny | `openai/whisper-tiny` | MIT | Audio feature encoder | Allowed with notice |
 | DWPose | upstream model snapshot | Apache-2.0 stated by MuseTalk LICENSE | Landmark processing | Allowed with notice |
